@@ -1,6 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const apiKey = import.meta.env.VITE_VERTEX_API_KEY;
+import { getVertexAI, getGenerativeModel } from "firebase/vertexai";
+import { app } from '../firebaseConfig';
 
 // System instructions for the Voter-saathi persona
 const SYSTEM_INSTRUCTION = `
@@ -27,31 +26,40 @@ TONE:
 - NEVER show political bias.
 `;
 
-let genAI = null;
 let model = null;
 
-if (apiKey && apiKey !== 'your_gemini_or_vertex_api_key_here') {
-  genAI = new GoogleGenerativeAI(apiKey);
-  model = genAI.getGenerativeModel({ 
-    model: 'gemini-1.5-flash',
-    systemInstruction: SYSTEM_INSTRUCTION,
-    generationConfig: {
-      temperature: 0.1,
-    }
-  });
+if (app) {
+  try {
+    const vertexAI = getVertexAI(app);
+    model = getGenerativeModel(vertexAI, { 
+      model: 'gemini-1.5-flash',
+      systemInstruction: SYSTEM_INSTRUCTION,
+      generationConfig: {
+        temperature: 0.1,
+      }
+    });
+  } catch(e) {
+    console.error("Vertex AI Initialization Failed", e);
+  }
 }
 
 export async function processQuery(query, chatHistory = []) {
   if (!model) {
-    return "API Key is not configured. Please add your VITE_VERTEX_API_KEY to the .env file. \n\n*Offline rule check fallback*: The choice of candidate is a secret and sacred decision that belongs only to you. My job is to ensure you get to the booth comfortably.";
+    return "Firebase Configuration (API Key, Project ID) is missing in .env.local. Vertex AI cannot initialize. \n\n*Offline rule check fallback*: The choice of candidate is a secret and sacred decision that belongs only to you. My job is to ensure you get to the booth comfortably.";
   }
 
   try {
+    let historyFormatted = chatHistory.map(msg => ({
+        role: msg.role === 'bot' ? 'model' : 'user',
+        parts: [{ text: msg.text }]
+    }));
+
+    if (historyFormatted.length > 0 && historyFormatted[0].role === 'model') {
+        historyFormatted.shift();
+    }
+
     const chat = model.startChat({
-        history: chatHistory.map(msg => ({
-            role: msg.role === 'bot' ? 'model' : 'user',
-            parts: [{ text: msg.text }]
-        }))
+        history: historyFormatted
     });
     
     // Check if the query asks about political opinions
@@ -64,7 +72,7 @@ export async function processQuery(query, chatHistory = []) {
     const result = await chat.sendMessage([{ text: query }]);
     return result.response.text();
   } catch (error) {
-    console.error("AI Error:", error);
-    return "I am currently facing network issues, please check standard ECI protocols on the NVSP website.";
+    console.error("Vertex AI Error:", error);
+    return "I am currently facing network issues connecting to Vertex AI via Firebase, please check standard ECI protocols on the NVSP website.";
   }
 }
