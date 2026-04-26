@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ACTIONS = [
+const DEFAULT_ACTIONS = [
   "I am a First-Time Voter",
   "Poll Dates & Leave Rules",
   "Valid ID Checklist",
@@ -8,10 +8,10 @@ const ACTIONS = [
   "Find My Polling Booth"
 ];
 
-export default function QuickActions({ onActionSelect }) {
+export default function QuickActions({ onActionSelect, actions = DEFAULT_ACTIONS }) {
   return (
     <div className="quick-actions" aria-label="Suggested questions">
-      {ACTIONS.map((action, index) => (
+      {actions.map((action, index) => (
         <button
           key={index}
           className="quick-action-btn"

@@ -12,18 +12,33 @@ The strategy was grounded in 6 crucial parameters:
 5. **Accessibility (WCAG):** Fully keyboard navigable, integrated with ARIA labels, semantic HTML, and high color-contrast ratio.
 6. **Google Services:** Tightly integrated with Google Vertex AI / Gemini via deterministic system prompts, and Google Firebase for app analytics telemetry. Supported by a Docker-ready setup for Google Cloud Run deployment.
 
-## Execution & Code
-- **UI Architecture:** 
-  - `ChatWindow.jsx`: Handles chat cycles, scrolling mechanics, and state management.
-  - `Message.jsx`: Responsibly renders text while mitigating security risks via DOM sanitization.
-  - `QuickActions.jsx`: Frictionless query generation for improved accessibility without typing.
-- **LLM Core Engine (`assistantLogic.js`):** 
-  - Connects to Google Generative AI using a comprehensive System Prompt. 
-  - Employs strict Regex patterns to catch and neutralize politically biased questions, delivering the mandated fallback: *"the choice of candidate is a secret and sacred decision..."*.
+## Technical Specifications & Features
+The application is structured around a highly scalable React architecture with offline-resilient AI logic.
+
+### 1. Zero-Knowledge Welcome Screen
+A stateful interceptor (`WelcomeScreen.jsx`) that routes users based on their voting experience, setting up anonymous, PII-free session profiles.
+
+### 2. Module A: The Foundation (Eligibility & Forms)
+- **Age Eligibility Calculator:** Intercepts "Check Eligibility" queries to dynamically calculate age against the 4 mandatory ECI Cutoff Dates (Jan 1, Apr 1, Jul 1, Oct 1) entirely locally within `electionService.js`.
+- **Form Finder Logic:** Strictly maps natural language intents to ECI Forms (Form 6, 7, 8).
+- **Electoral Roll Constraint:** Natively instructs the AI to enforce that having an EPIC card is not enough; the name MUST be on the Electoral Roll.
+
+### 3. Module B: Process Transparency (Timeline)
+- **Interactive Visual Timeline:** Parses the `[SHOW_TIMELINE]` trigger from the AI to render the `ElectionTimeline.jsx` component, visually breaking down the 7 stages (Notification to Counting).
+- **Model Code of Conduct:** Simplified logic explaining MCC as the "Fair Play" rules for politicians.
+
+### 4. Module C: The Booth (Walkthrough & Accessibility)
+- **Virtual Booth Simulator:** Parses the `[SHOW_BOOTH]` trigger to render the `BoothWalkthrough.jsx` component.
+- **Text-to-Speech (TTS):** Implements the native Web Speech API (`window.speechSynthesis`) to provide audio-guided instructions for each stage of the booth.
+- **The 7-Second Rule:** Strictly enforces the VVPAT verification window explanation.
+
+### 5. Offline Fallback Logic
+- The `assistantLogic.js` uses `gemini-2.5-flash` for high-accuracy parsing. 
+- **Graceful Degradation:** If the API key is missing or the network drops, a robust local regex fallback matcher seamlessly takes over, ensuring the core "Timeline", "Booth", and "Forms" features remain 100% functional offline.
 
 ## Getting Started
 1. Install dependencies: `npm install`
-2. Create your `.env.local` based on `.env.sample` and provide your Vertex API and Firebase keys.
+2. Create your `.env.local` based on `.env.sample` and provide your Vertex/Gemini API key (`VITE_VERTEX_API_KEY`).
 3. Run local server: `npm run dev`
 4. Run tests: `npm run test`
 
