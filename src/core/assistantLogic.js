@@ -1,5 +1,6 @@
-import { getVertexAI, getGenerativeModel } from "firebase/vertexai";
-import { app } from '../firebaseConfig';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const apiKey = import.meta.env.VITE_VERTEX_API_KEY;
 
 // System instructions for the Voter-saathi persona
 const SYSTEM_INSTRUCTION = `
@@ -26,26 +27,26 @@ TONE:
 - NEVER show political bias.
 `;
 
+let genAI = null;
 let model = null;
 
-if (app) {
+if (apiKey && apiKey !== 'your_gemini_or_vertex_api_key_here') {
   try {
-    const vertexAI = getVertexAI(app);
-    model = getGenerativeModel(vertexAI, { 
-      model: 'gemini-1.5-flash',
-      systemInstruction: SYSTEM_INSTRUCTION,
+    genAI = new GoogleGenerativeAI(apiKey);
+    model = genAI.getGenerativeModel({ 
+      model: 'gemini-pro',
       generationConfig: {
         temperature: 0.1,
       }
     });
-  } catch(e) {
-    console.error("Vertex AI Initialization Failed", e);
+  } catch (err) {
+    console.error("AI Init Error:", err);
   }
 }
 
 export async function processQuery(query, chatHistory = []) {
   if (!model) {
-    return "Firebase Configuration (API Key, Project ID) is missing in .env.local. Vertex AI cannot initialize. \n\n*Offline rule check fallback*: The choice of candidate is a secret and sacred decision that belongs only to you. My job is to ensure you get to the booth comfortably.";
+    return "API Key is not configured correctly. Please check permissions or .env.local string. \n\n*Offline rule check fallback*: The choice of candidate is a secret and sacred decision that belongs only to you. My job is to ensure you get to the booth comfortably.";
   }
 
   try {
@@ -69,10 +70,12 @@ export async function processQuery(query, chatHistory = []) {
         return "As your Voter Assistant, I can provide all the tools and info to help you vote, but the choice of candidate is a secret and sacred decision that belongs only to you. My job is to ensure you get to the booth comfortably.";
     }
 
-    const result = await chat.sendMessage([{ text: query }]);
+    const fullPayload = (chatHistory.length === 0) ? SYSTEM_INSTRUCTION + "\n\nUser Question: " + query : query;
+
+    const result = await chat.sendMessage([{ text: fullPayload }]);
     return result.response.text();
   } catch (error) {
-    console.error("Vertex AI Error:", error);
-    return "I am currently facing network issues connecting to Vertex AI via Firebase, please check standard ECI protocols on the NVSP website.";
+    console.error("AI Error:", error);
+    return "I am currently facing network issues connecting, please check standard ECI protocols on the NVSP website.";
   }
 }

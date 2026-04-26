@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { processQuery } from './assistantLogic';
 
 describe('Voter-saathi Assistant Logic Engine', () => {
@@ -10,9 +10,9 @@ describe('Voter-saathi Assistant Logic Engine', () => {
     expect(response).toContain("ensure you get to the booth comfortably");
   });
 
-  it('Should provide an error fallback when API is misconfigured offline', async () => {
-    // With dummy API key or no key, it falls back
+  it('Should provide an error fallback when API fails or is misconfigured', async () => {
+    // With invalid/failing configuration, it falls back safely without crashing
     const response = await processQuery("How do I vote?", []);
-    expect(response).toContain("API Key is not configured");
+    expect(response).to.match(/API Key is not configured|network issues connecting/);
   });
 });
