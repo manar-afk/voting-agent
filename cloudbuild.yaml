@@ -1,0 +1,10 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/voter-saathi', '.']
+  # Push the image to Artifact Registry / GCR
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/voter-saathi']
+
+images:
+  - 'gcr.io/$PROJECT_ID/voter-saathi'
