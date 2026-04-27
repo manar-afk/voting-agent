@@ -6,7 +6,7 @@
 ## Planning
 The strategy was grounded in 6 crucial parameters:
 1. **Code Quality:** Built using Vite + React with component-based architecture for maximum maintainability.
-2. **Security:** Implemented `dompurify` to prevent XSS vulnerabilities within the AI-generated HTML content, and an `.env` wrapper to shield API credentials.
+2. **Security:** Implemented `dompurify` to prevent XSS vulnerabilities within the AI-generated HTML content.
 3. **Efficiency:** Developed with Vanilla CSS and optimized functional components to limit overhead and enforce a blazing fast DOM footprint.
 4. **Testing:** Configured `Vitest` with `jsdom` to assure core logic engine resilience and deterministic fail-safes against political biases.
 5. **Accessibility (WCAG):** Fully keyboard navigable, integrated with ARIA labels, semantic HTML, and high color-contrast ratio.
