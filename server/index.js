@@ -12,23 +12,34 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 
+// Health Check Endpoint (For Cloud Run)
+app.get('/health', (req, res) => res.send('OK'));
+app.get('/', (req, res) => res.send('Voter-saathi API is running!'));
+
 const PORT = process.env.PORT || 8080;
 const PROJECT_ID = process.env.GCP_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
 const LOCATION = process.env.GCP_LOCATION || 'us-central1';
 
-// Initialize Vertex AI (auto-detects project ID if not provided)
-const vertexConfig = { location: LOCATION };
-if (PROJECT_ID) vertexConfig.project = PROJECT_ID;
+let generativeModel = null;
 
-const vertexAI = new VertexAI(vertexConfig);
-const generativeModel = vertexAI.getGenerativeModel({
-  model: 'gemini-1.5-flash',
-});
+function getModel() {
+  if (generativeModel) return generativeModel;
+  
+  const vertexConfig = { location: LOCATION };
+  if (PROJECT_ID) vertexConfig.project = PROJECT_ID;
+
+  const vertexAI = new VertexAI(vertexConfig);
+  generativeModel = vertexAI.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+  });
+  return generativeModel;
+}
 
 // AI Chat Endpoint (The Secure Proxy)
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, history, systemInstruction } = req.body;
+    const model = getModel();
 
     const chat = generativeModel.startChat({
         history: history || [],
