@@ -15,7 +15,7 @@ The strategy was grounded in 6 crucial parameters:
 ## Technical Specifications & Features
 The application is structured around a highly scalable React architecture with offline-resilient AI logic.
 
-### 1. Zero-Knowledge Welcome Screen
+### 1. Welcome Screen
 A stateful interceptor (`WelcomeScreen.jsx`) that routes users based on their voting experience, setting up anonymous, PII-free session profiles.
 
 ### 2. Module A: The Foundation (Eligibility & Forms)
