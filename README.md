@@ -32,15 +32,18 @@ A stateful interceptor (`WelcomeScreen.jsx`) that routes users based on their vo
 - **Text-to-Speech (TTS):** Implements the native Web Speech API (`window.speechSynthesis`) to provide audio-guided instructions for each stage of the booth.
 - **The 7-Second Rule:** Strictly enforces the VVPAT verification window explanation.
 
-### 5. Offline Fallback Logic
-- The `assistantLogic.js` uses `gemini-2.5-flash` for high-accuracy parsing. 
-- **Graceful Degradation:** If the API key is missing or the network drops, a robust local regex fallback matcher seamlessly takes over, ensuring the core "Timeline", "Booth", and "Forms" features remain 100% functional offline.
+### 5. Secure Backend Proxy (The PulsePoint Pattern)
+- **Node.js/Express Backend:** To avoid exposing API keys in the browser, the application now uses a secure backend proxy (`server/index.js`).
+- **Identity-Based Auth:** Leveraging **Google Cloud Run Service Accounts** and the `@google-cloud/vertexai` SDK, the agent authenticates via `gcloud auth` (IAM) rather than static API keys.
+- **Graceful Degradation:** If the backend is unreachable or the network drops, a robust local regex fallback matcher in the frontend seamlessly takes over, ensuring the core "Timeline", "Booth", and "Forms" features remain 100% functional offline.
 
 ## Getting Started
 1. Install dependencies: `npm install`
-2. Create your `.env.local` based on `.env.sample` and provide your Vertex/Gemini API key (`VITE_VERTEX_API_KEY`).
+2. Create your `.env.local` based on `.env.sample`.
+   - *Note: For local development, you still use an API key. For production/Cloud Run, the app automatically switches to secure IAM-based auth.*
 3. Run local server: `npm run dev`
-4. Run tests: `npm run test`
+4. Run production server locally: `npm run build && npm start`
+5. Run tests: `npm run test`
 
 ## Docker Build (Google Cloud Run)
 ```bash

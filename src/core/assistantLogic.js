@@ -1,7 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const apiKey = import.meta.env.VITE_VERTEX_API_KEY;
-
 // System instructions for the Voter-saathi persona
 const SYSTEM_INSTRUCTION = `
 You are "Voter-saathi," a dedicated, hyper-localized Indian Election Assistant. 
@@ -36,24 +32,6 @@ TONE:
 - NEVER show political bias.
 `;
 
-
-let genAI = null;
-let model = null;
-
-if (apiKey && apiKey !== 'your_gemini_or_vertex_api_key_here') {
-  try {
-    genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash',
-      generationConfig: {
-        temperature: 0.1,
-      }
-    });
-  } catch (err) {
-    console.error("AI Init Error:", err);
-  }
-}
-
 // Fallback logic for when AI is unavailable or offline
 function fallbackMatcher(query) {
   const q = query.toLowerCase();
@@ -77,40 +55,35 @@ function fallbackMatcher(query) {
   return "I am currently running in offline mode. Please use the quick action buttons above or ask me specifically about the 'timeline', the 'polling booth', or 'eligibility'.";
 }
 
+/**
+ * Communicates with the Secure Backend Proxy (/api/chat).
+ * This allows using "gcloud auth" (Service Account Identity) instead of exposing API keys.
+ */
 export async function processQuery(query, chatHistory = []) {
-  if (!model) {
-    // Graceful offline fallback
-    return fallbackMatcher(query);
-  }
-
+  // 1. Check for specific visual component triggers first (local fallback always active)
+  const fallback = fallbackMatcher(query);
+  
+  // 2. Try the secure Backend Proxy
   try {
-    let historyFormatted = chatHistory.map(msg => ({
-        role: msg.role === 'bot' ? 'model' : 'user',
-        parts: [{ text: msg.text }]
-    }));
-
-    if (historyFormatted.length > 0 && historyFormatted[0].role === 'model') {
-        historyFormatted.shift();
-    }
-
-    const chat = model.startChat({
-        history: historyFormatted
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: query,
+        history: chatHistory.map(m => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: m.text }]
+        })),
+        systemInstruction: SYSTEM_INSTRUCTION
+      })
     });
-    
-    // Check if the query asks about political opinions
-    const politicalPatterns = [/who to vote for/i, /best party/i, /political opinion/i, /bjp/i, /congress/i, /aap/i, /tmc/i];
-    const isPolitical = politicalPatterns.some(pattern => pattern.test(query));
-    if (isPolitical) {
-        return "As your Voter Assistant, I can provide all the tools and info to help you vote, but the choice of candidate is a secret and sacred decision that belongs only to you. My job is to ensure you get to the booth comfortably.";
-    }
 
-    const fullPayload = (chatHistory.length === 0) ? SYSTEM_INSTRUCTION + "\n\nUser Question: " + query : query;
+    if (!response.ok) throw new Error('Proxy error');
 
-    const result = await chat.sendMessage([{ text: fullPayload }]);
-    return result.response.text();
-  } catch (error) {
-    console.error("AI Error:", error);
-    // Use the robust offline fallback instead of a scary network error
-    return fallbackMatcher(query);
+    const data = await response.json();
+    return data.text;
+  } catch (err) {
+    console.warn("AI Backend Error, using fallback:", err);
+    return fallback;
   }
 }

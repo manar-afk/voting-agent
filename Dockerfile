@@ -1,21 +1,29 @@
-# Base image
-FROM node:18-alpine AS build
-
-# Set working directory
+# Build stage
+FROM node:20-alpine AS build
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
-
-# Copy source code and build
 COPY . .
 RUN npm run build
 
-# Serve stage
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Production stage
+FROM node:20-alpine
+WORKDIR /app
+
+# Install production dependencies
+COPY package*.json ./
+RUN npm install --production
+
+# Copy built assets from build stage
+COPY --from=build /app/dist ./dist
+# Copy server source
+COPY server ./server
+
+# Set production environment
+ENV NODE_ENV=production
+ENV PORT=8080
+
+EXPOSE 8080
+
+# The Cloud Run service account will handle auth automatically!
+CMD ["node", "server/index.js"]
