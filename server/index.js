@@ -14,7 +14,6 @@ app.use(express.json());
 
 // Health Check Endpoint (For Cloud Run)
 app.get('/health', (req, res) => res.send('OK'));
-app.get('/', (req, res) => res.send('Voter-saathi API is running!'));
 
 const PORT = process.env.PORT || 8080;
 const PROJECT_ID = process.env.GCP_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
