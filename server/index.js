@@ -16,10 +16,13 @@ const PORT = process.env.PORT || 8080;
 const PROJECT_ID = process.env.GCP_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
 const LOCATION = process.env.GCP_LOCATION || 'us-central1';
 
-// Initialize Vertex AI
-const vertexAI = new VertexAI({ project: PROJECT_ID, location: LOCATION });
+// Initialize Vertex AI (auto-detects project ID if not provided)
+const vertexConfig = { location: LOCATION };
+if (PROJECT_ID) vertexConfig.project = PROJECT_ID;
+
+const vertexAI = new VertexAI(vertexConfig);
 const generativeModel = vertexAI.getGenerativeModel({
-  model: 'gemini-1.5-flash', // Standard model for Vertex
+  model: 'gemini-1.5-flash',
 });
 
 // AI Chat Endpoint (The Secure Proxy)
@@ -51,7 +54,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Using Project ID: ${PROJECT_ID}`);
+  console.log(`Using Project ID: ${PROJECT_ID || 'auto-detected'}`);
 });
