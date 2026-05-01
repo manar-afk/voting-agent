@@ -1,19 +1,29 @@
-import { db } from "../firebaseConfig";
-import { doc, setDoc, updateDoc } from "firebase/firestore";
+import { db, analytics } from "../firebaseConfig";
+import { doc, setDoc } from "firebase/firestore";
+import { logEvent } from "firebase/analytics";
 
 /**
  * Handles the "Zero-Knowledge Welcome Screen" logic.
  * Branches to the correct module based on whether the user has voted before.
+ * Logs event to Firebase Analytics.
  * 
  * @param {string} userId - Anonymous session ID.
  * @param {boolean} hasVotedBefore - User's response.
- * @returns {object} The next step instruction.
+ * @returns {Promise<object>} The next step instruction.
  */
 export async function handleWelcomeBranch(userId, hasVotedBefore) {
   try {
     const journeyStage = hasVotedBefore ? "Module_C_Booth" : "Module_A_Foundation";
     
-    // Save to Firestore (assuming free tier is set up, fallback to local logic if it fails)
+    // Log to Firebase Analytics
+    if (analytics) {
+      logEvent(analytics, 'user_journey_start', { 
+        stage: journeyStage, 
+        has_voted_before: hasVotedBefore 
+      });
+    }
+
+    // Save to Firestore
     if (db) {
       const userRef = doc(db, "users", userId);
       await setDoc(userRef, {
@@ -38,7 +48,6 @@ export async function handleWelcomeBranch(userId, hasVotedBefore) {
     }
   } catch (error) {
     console.error("Error in handleWelcomeBranch:", error);
-    // Fallback logic if Firestore fails
     return {
       stage: hasVotedBefore ? "Module_C_Booth" : "Module_A_Foundation",
       message: "Network issue detected, but let's continue! " + (hasVotedBefore ? "Since you've voted before, how can I help today?" : "As a first-time voter, let's start with getting you registered."),
@@ -50,6 +59,10 @@ export async function handleWelcomeBranch(userId, hasVotedBefore) {
 /**
  * Calculates eligibility based on 4 ECI cutoff dates.
  * Cutoff dates: Jan 1st, April 1st, July 1st, Oct 1st.
+ * Logs event to Firebase Analytics.
+ * 
+ * @param {string} dobDate - Date of birth string.
+ * @returns {object} Eligibility result and message.
  */
 export function checkEligibility(dobDate) {
   const dob = new Date(dobDate);
@@ -65,6 +78,11 @@ export function checkEligibility(dobDate) {
   const m = today.getMonth() - dob.getMonth();
   if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
     ageToday--;
+  }
+
+  // Log event
+  if (analytics) {
+    logEvent(analytics, 'eligibility_checked', { age: ageToday });
   }
 
   if (ageToday >= 18) {

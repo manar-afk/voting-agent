@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import DOMPurify from 'dompurify';
-import ElectionTimeline from './ElectionTimeline';
-import BoothWalkthrough from './BoothWalkthrough';
+
+const ElectionTimeline = lazy(() => import('./ElectionTimeline'));
+const BoothWalkthrough = lazy(() => import('./BoothWalkthrough'));
+
+const LoadingFallback = () => <div className="component-loader">Loading visual guide...</div>;
 
 export default function Message({ role, text }) {
   // Basic markdown parser for bold and bullet points
   const formatText = (input) => {
     let formatted = input.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     formatted = formatted.replace(/\n\*/g, '<br/>•');
-    formatted = formatted.replace(/\n\-/g, '<br/>•');
+    formatted = formatted.replace(/\n-/g, '<br/>•');
     formatted = formatted.replace(/\n/g, '<br/>');
     return DOMPurify.sanitize(formatted);
   };
@@ -18,7 +21,7 @@ export default function Message({ role, text }) {
   
   let parts = [text];
   if (hasTimeline) parts = text.split('[SHOW_TIMELINE]');
-  if (hasBooth) parts = text.split('[SHOW_BOOTH]');
+  else if (hasBooth) parts = text.split('[SHOW_BOOTH]');
 
   const cleanText = text.replace('[SHOW_TIMELINE]', '').replace('[SHOW_BOOTH]', '');
 
@@ -31,8 +34,10 @@ export default function Message({ role, text }) {
       >
         {parts[0] && <div dangerouslySetInnerHTML={{ __html: formatText(parts[0]) }} />}
         
-        {hasTimeline && <ElectionTimeline />}
-        {hasBooth && <BoothWalkthrough />}
+        <Suspense fallback={<LoadingFallback />}>
+          {hasTimeline && <ElectionTimeline />}
+          {hasBooth && <BoothWalkthrough />}
+        </Suspense>
         
         {parts[1] && <div dangerouslySetInnerHTML={{ __html: formatText(parts[1]) }} />}
       </div>

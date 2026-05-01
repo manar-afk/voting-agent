@@ -9,13 +9,22 @@ const DEFAULT_ACTIONS = [
 ];
 
 export default function QuickActions({ onActionSelect, actions = DEFAULT_ACTIONS }) {
+  const handleAction = (action) => {
+    if (action === "Find My Polling Booth" || action === "Find Polling Booth") {
+      // Use Google Maps Search for polling booths
+      window.open('https://www.google.com/maps/search/polling+booth+near+me', '_blank');
+      return;
+    }
+    onActionSelect(action);
+  };
+
   return (
     <div className="quick-actions" aria-label="Suggested questions">
       {actions.map((action, index) => (
         <button
           key={index}
           className="quick-action-btn"
-          onClick={() => onActionSelect(action)}
+          onClick={() => handleAction(action)}
           aria-label={`Ask: ${action}`}
         >
           {action}

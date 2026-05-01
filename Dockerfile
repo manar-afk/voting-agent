@@ -2,7 +2,7 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY . .
 RUN npm run build
 
@@ -12,7 +12,7 @@ WORKDIR /app
 
 # Install production dependencies
 COPY package*.json ./
-RUN npm install --production
+RUN npm ci --only=production && npm cache clean --force
 
 # Copy built assets from build stage
 COPY --from=build /app/dist ./dist

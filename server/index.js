@@ -30,6 +30,24 @@ function getModel() {
   const vertexAI = new VertexAI(vertexConfig);
   generativeModel = vertexAI.getGenerativeModel({
     model: 'gemini-1.5-flash',
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_LOW_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_LOW_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_LOW_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_LOW_AND_ABOVE',
+      },
+    ],
   });
   return generativeModel;
 }
@@ -38,7 +56,7 @@ function getModel() {
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, history, systemInstruction } = req.body;
-    const model = getModel();
+    getModel(); // Ensure model is initialized
 
     const chat = generativeModel.startChat({
         history: history || [],

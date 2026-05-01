@@ -1,7 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const apiKey = "YOUR_API_KEY_HERE";
-const SYSTEM_INSTRUCTION = "You are a test agent.";
 
 const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({ 
