@@ -32,8 +32,8 @@ A stateful interceptor (`WelcomeScreen.jsx`) that routes users based on their vo
 - **Text-to-Speech (TTS):** Implements the native Web Speech API (`window.speechSynthesis`) to provide audio-guided instructions for each stage of the booth.
 - **The 7-Second Rule:** Strictly enforces the VVPAT verification window explanation.
 
-### 5. Secure Backend Proxy (The PulsePoint Pattern)
-- **Node.js/Express Backend:** To avoid exposing API keys in the browser, the application now uses a secure backend proxy (`server/index.js`).
+### 5. Secure Backend Proxy 
+- **Node.js/Express Backend:** The application uses a secure backend proxy (`server/index.js`).
 - **Identity-Based Auth:** Leveraging **Google Cloud Run Service Accounts** and the `@google-cloud/vertexai` SDK, the agent authenticates via `gcloud auth` (IAM) rather than static API keys.
 - **Graceful Degradation:** If the backend is unreachable or the network drops, a robust local regex fallback matcher in the frontend seamlessly takes over, ensuring the core "Timeline", "Booth", and "Forms" features remain 100% functional offline.
 
