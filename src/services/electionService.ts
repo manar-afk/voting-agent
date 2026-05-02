@@ -2,20 +2,31 @@ import { db, analytics } from "../firebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
 import { logEvent } from "firebase/analytics";
 
+export interface JourneyStep {
+  stage: string;
+  message: string;
+  options: string[];
+}
+
+export interface EligibilityResult {
+  eligible: boolean;
+  message: string;
+  options?: string[];
+}
+
+export interface FormResult {
+  form: string;
+  description: string;
+}
+
 /**
  * Handles the "Zero-Knowledge Welcome Screen" logic.
  * Branches to the correct module based on whether the user has voted before.
- * Logs event to Firebase Analytics.
- * 
- * @param {string} userId - Anonymous session ID.
- * @param {boolean} hasVotedBefore - User's response.
- * @returns {Promise<object>} The next step instruction.
  */
-export async function handleWelcomeBranch(userId, hasVotedBefore) {
+export async function handleWelcomeBranch(userId: string, hasVotedBefore: boolean): Promise<JourneyStep> {
   try {
     const journeyStage = hasVotedBefore ? "Module_C_Booth" : "Module_A_Foundation";
     
-    // Log to Firebase Analytics
     if (analytics) {
       logEvent(analytics, 'user_journey_start', { 
         stage: journeyStage, 
@@ -23,7 +34,6 @@ export async function handleWelcomeBranch(userId, hasVotedBefore) {
       });
     }
 
-    // Save to Firestore
     if (db) {
       const userRef = doc(db, "users", userId);
       await setDoc(userRef, {
@@ -58,13 +68,8 @@ export async function handleWelcomeBranch(userId, hasVotedBefore) {
 
 /**
  * Calculates eligibility based on 4 ECI cutoff dates.
- * Cutoff dates: Jan 1st, April 1st, July 1st, Oct 1st.
- * Logs event to Firebase Analytics.
- * 
- * @param {string} dobDate - Date of birth string.
- * @returns {object} Eligibility result and message.
  */
-export function checkEligibility(dobDate) {
+export function checkEligibility(dobDate: string): EligibilityResult {
   const dob = new Date(dobDate);
   
   if (isNaN(dob.getTime())) {
@@ -72,15 +77,12 @@ export function checkEligibility(dobDate) {
   }
 
   const today = new Date();
-  
-  // Calculate exact age today
   let ageToday = today.getFullYear() - dob.getFullYear();
   const m = today.getMonth() - dob.getMonth();
   if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
     ageToday--;
   }
 
-  // Log event
   if (analytics) {
     logEvent(analytics, 'eligibility_checked', { age: ageToday });
   }
@@ -89,17 +91,16 @@ export function checkEligibility(dobDate) {
     return { eligible: true, message: `You are ${ageToday} years old and eligible to register to vote right now! You should use **Form 6** to get your name on the Electoral Roll. Would you like to know the difference between the Electoral Roll and Voter ID?`, options: ["Electoral Roll vs Voter ID", "How to fill Form 6"] };
   }
 
-  // If not 18 yet, check against the next cutoff dates of the current year or next year
   const currentYear = today.getFullYear();
   const cutoffs = [
-    new Date(currentYear, 0, 1),   // Jan 1
-    new Date(currentYear, 3, 1),   // Apr 1
-    new Date(currentYear, 6, 1),   // Jul 1
-    new Date(currentYear, 9, 1),   // Oct 1
-    new Date(currentYear + 1, 0, 1) // Jan 1 Next Year
+    new Date(currentYear, 0, 1),
+    new Date(currentYear, 3, 1),
+    new Date(currentYear, 6, 1),
+    new Date(currentYear, 9, 1),
+    new Date(currentYear + 1, 0, 1)
   ];
 
-  let nextCutoff = null;
+  let nextCutoff = cutoffs[0];
   for (const cutoff of cutoffs) {
     if (cutoff > today) {
       nextCutoff = cutoff;
@@ -107,7 +108,6 @@ export function checkEligibility(dobDate) {
     }
   }
 
-  // Calculate age at the next cutoff date
   let ageAtCutoff = nextCutoff.getFullYear() - dob.getFullYear();
   const mCutoff = nextCutoff.getMonth() - dob.getMonth();
   if (mCutoff < 0 || (mCutoff === 0 && nextCutoff.getDate() < dob.getDate())) {
@@ -124,9 +124,8 @@ export function checkEligibility(dobDate) {
 
 /**
  * Determines the correct ECI Form based on user intent.
- * @param {string} intent - new, correction, deletion
  */
-export function findForm(intent) {
+export function findForm(intent: string): FormResult {
   const i = intent.toLowerCase();
   if (i.includes("new") || i.includes("register")) {
     return { form: "Form 6", description: "Use Form 6 for registering as a new voter." };

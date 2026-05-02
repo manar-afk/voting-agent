@@ -1,11 +1,14 @@
 import { SYSTEM_INSTRUCTION, FALLBACK_MESSAGES } from './constants';
 
+export interface ChatMessage {
+  role: 'user' | 'bot';
+  text: string;
+}
+
 /**
  * Local fallback logic for when AI is unavailable, offline, or for specific neutral responses.
- * @param {string} query - The user's input string.
- * @returns {string} A predefined response based on keyword matching.
  */
-export function fallbackMatcher(query) {
+export function fallbackMatcher(query: string): string {
   const q = query.toLowerCase();
   
   if (q.includes("who should i vote for") || q.includes("which party") || q.includes("bjp") || q.includes("congress") || q.includes("aap")) {
@@ -32,21 +35,14 @@ export function fallbackMatcher(query) {
 }
 
 /**
- * Processes a user query by first attempting to use the secure backend proxy (Vertex AI),
- * and falling back to local logic on failure or for sensitive neutral topics.
- * 
- * @param {string} query - The user's input.
- * @param {Array} chatHistory - Previous messages in the conversation.
- * @returns {Promise<string>} The assistant's response.
+ * Processes a user query by first attempting to use the secure backend proxy (Vertex AI).
  */
-export async function processQuery(query, chatHistory = []) {
-  // 1. Check for specific visual component triggers or neutral failsafes first
+export async function processQuery(query: string, chatHistory: ChatMessage[] = []): Promise<string> {
   const q = query.toLowerCase();
   if (q.includes("who should i vote for") || q.includes("which party")) {
     return FALLBACK_MESSAGES.NEUTRAL_FAILSAFE;
   }
 
-  // 2. Try the secure Backend Proxy
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
@@ -70,4 +66,3 @@ export async function processQuery(query, chatHistory = []) {
     return fallbackMatcher(query);
   }
 }
-

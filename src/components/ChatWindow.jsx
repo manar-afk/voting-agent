@@ -1,98 +1,33 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import Message from './Message';
 import QuickActions from './QuickActions';
 import WelcomeScreen from './WelcomeScreen';
-import { processQuery } from '../core/assistantLogic';
-import { handleWelcomeBranch, checkEligibility } from '../services/electionService';
+import { useChat } from '../hooks/useChat';
 
-// Generate a random temporary session ID
 const generateSessionId = () => Math.random().toString(36).substring(2, 15);
 
 export default function ChatWindow() {
-  const [hasAnsweredWelcome, setHasAnsweredWelcome] = useState(false);
   const [userId] = useState(generateSessionId());
-  
-  const [messages, setMessages] = useState([]);
-  const [actions, setActions] = useState([]);
+  const {
+    messages,
+    actions,
+    isTyping,
+    waitingForDob,
+    hasAnsweredWelcome,
+    endOfMessagesRef,
+    handleWelcomeSelect,
+    handleSend
+  } = useChat(userId);
   
   const [inputVal, setInputVal] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [waitingForDob, setWaitingForDob] = useState(false);
-
-  const endOfMessagesRef = useRef(null);
-
-  const scrollToBottom = () => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    if (hasAnsweredWelcome) {
-      scrollToBottom();
-    }
-  }, [messages, isTyping, hasAnsweredWelcome]);
-
-  const handleWelcomeSelect = async (hasVotedBefore) => {
-    setIsTyping(true);
-    setHasAnsweredWelcome(true);
-    
-    // Call the service to determine the next branch
-    const branchData = await handleWelcomeBranch(userId, hasVotedBefore);
-    
-    setMessages([
-      { role: 'bot', text: branchData.message }
-    ]);
-    if (branchData.options) {
-      setActions(branchData.options);
-    }
-    
-    setIsTyping(false);
-  };
-
-  const handleSend = async (text) => {
-    const query = text.trim();
-    if (!query) return;
-
-    // Add user message
-    const newMessages = [...messages, { role: 'user', text: query }];
-    setMessages(newMessages);
-    setInputVal('');
-    setIsTyping(true);
-
-    // Interception logic for Eligibility check
-    if (query.toLowerCase() === "check eligibility") {
-      setWaitingForDob(true);
-      setMessages([...newMessages, { role: 'bot', text: "Sure! To check if you are eligible to vote in the upcoming elections, please provide your Date of Birth (e.g., YYYY-MM-DD or 15 August 2005)." }]);
-      setActions([]);
-      setIsTyping(false);
-      return;
-    }
-
-    if (waitingForDob) {
-      setWaitingForDob(false);
-      const result = checkEligibility(query);
-      setMessages([...newMessages, { role: 'bot', text: result.message }]);
-      setActions(result.options || ["What is Form 6?", "Electoral Roll vs Voter ID"]);
-      setIsTyping(false);
-      return;
-    }
-
-    // Call the Assistant Engine
-    const responseText = await processQuery(query, newMessages.slice(0, -1));
-
-    setIsTyping(false);
-    setMessages((prev) => [...prev, { role: 'bot', text: responseText }]);
-    
-    // If the assistant just answered a general query, we can provide standard actions
-    // or keep the last actions. For simplicity, we keep the last ones if none are strictly needed,
-    // or reset them if they asked about forms.
-    if (query.toLowerCase().includes("electoral roll") || query.toLowerCase().includes("voter id")) {
-        setActions(["What is Form 6?", "Check Eligibility"]);
-    }
-  };
 
   const submitForm = (e) => {
     e.preventDefault();
-    handleSend(inputVal);
+    const text = inputVal.trim();
+    if (text) {
+      handleSend(text);
+      setInputVal('');
+    }
   };
 
   if (!hasAnsweredWelcome) {
@@ -134,3 +69,4 @@ export default function ChatWindow() {
     </>
   );
 }
+
